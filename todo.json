@@ -1,44 +1,44 @@
 [
     {
         "id": 1757499981352,
-        "title": "\ucc44\uc18c",
-        "description": "\ud1a0\ub9c8\ud1a0",
+        "title": "채소",
+        "description": "토마토",
         "completed": false
     },
     {
         "id": 1757499998483,
-        "title": "\uacfc\uc77c",
-        "description": "\ubcf5\uc22d\uc544",
+        "title": "과일",
+        "description": "복숭아",
         "completed": false
     },
     {
         "id": 1757500000361,
-        "title": "\uacfc\uc77c",
-        "description": "\uc0ac\uacfc",
-        "completed": false
-    },
-    {
-        "id": 1757500002261,
-        "title": "\uacfc\uc77c",
-        "description": "\ubc14\ub098\ub098",
+        "title": "과일",
+        "description": "사과",
         "completed": false
     },
     {
         "id": 1757500003865,
-        "title": "\uacfc\uc77c",
-        "description": "\uc218\ubc15",
+        "title": "과일",
+        "description": "수박",
         "completed": false
     },
     {
         "id": 1757500005935,
-        "title": "\uacfc\uc77c",
-        "description": "\ub538\uae30",
+        "title": "과일",
+        "description": "딸기",
         "completed": false
     },
     {
         "id": 1757500007357,
-        "title": "\uacfc\uc77c",
-        "description": "\ucc38\uc678",
+        "title": "과일",
+        "description": "참외",
+        "completed": false
+    },
+    {
+        "id": 1758264132078,
+        "title": "채소",
+        "description": "당근",
         "completed": false
     }
 ]
