@@ -1,14 +1,23 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 from pydantic import BaseModel, field_validator
 from typing import List, Optional
 import json
 import os
 from pathlib import Path
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "3.0.0"
 
 app = FastAPI(title="Todo App", version=APP_VERSION)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Paths (절대경로 안전화) ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -100,3 +109,16 @@ def read_root():
     if not INDEX_HTML.exists():
         return HTMLResponse("<h1>index.html not found</h1>", status_code=500)
     return HTMLResponse(INDEX_HTML.read_text(encoding="utf-8"))
+
+@app.middleware("http")
+async def add_version_header(request: Request, call_next):
+    resp = await call_next(request)
+    resp.headers["X-App-Version"] = APP_VERSION
+    return resp
+
+@app.get("/todos/{todo_id}", response_model=TodoItem)
+def get_todo(todo_id: int):
+    for t in load_todos():
+        if t["id"] == todo_id:
+            return t
+    raise HTTPException(status_code=404, detail="To-Do item not found")

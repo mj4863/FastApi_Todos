@@ -14,6 +14,9 @@
     footer { margin-top: 24px; color: #666; }
     button { cursor: pointer; }
     .err { color: #b00020; margin: 6px 0; }
+    :root { color-scheme: light dark; }          /* NEW: 브라우저 기본 다크 지원 힌트 */
+    body.dark { background:#111; color:#eee; }   /* NEW: 매우 간단한 다크 */
+    body.dark small.muted { color:#aaa; }
   </style>
 </head>
 <body>
@@ -27,6 +30,7 @@
         <option value="false">Active</option>
       </select>
     </label>
+    <button type="button" id="toggle-theme" title="Toggle dark mode">🌓</button>
     <span id="status" class="small muted"></span>
   </div>
 
@@ -51,6 +55,16 @@
     const statusEl = $("#status");
     const errEl = $("#error");
     const verEl = $("#app-version");
+    const FILTER_KEY = 'todo-filter';
+    const THEME_KEY = 'todo-theme';
+
+    if (localStorage.getItem(THEME_KEY) === 'dark') document.body.classList.add('dark');
+    $("#toggle-theme").onclick = () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem(THEME_KEY, document.body.classList.contains('dark') ? 'dark' : 'light');
+    };
+
+    filterEl.value = localStorage.getItem(FILTER_KEY) || 'all';
 
     async function getVersion() {
       try {
@@ -74,6 +88,17 @@
 
       listEl.innerHTML = '';
       statusEl.textContent = `${todos.length} item(s)`;
+
+      const done = todos.filter(t => !!t.completed).length;
+      statusEl.textContent = `${todos.length} item(s) • ${done} done`;
+
+      if (todos.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'muted';
+        li.textContent = 'No items yet. Add your first to-do!';
+        listEl.appendChild(li);
+        return;
+      }
 
       todos.forEach(todo => {
         const li = document.createElement('li');
@@ -156,10 +181,15 @@
       }
     });
 
-    filterEl.addEventListener('change', fetchTodos);
+    filterEl.addEventListener('change', () => {
+      localStorage.setItem(FILTER_KEY, filterEl.value);
+      fetchTodos();
+    });
 
     getVersion();
     fetchTodos();
+
+
   </script>
 </body>
 </html>
