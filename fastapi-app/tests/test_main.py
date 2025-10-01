@@ -40,8 +40,8 @@ def test_get_todos_with_items():
 def test_create_todo():
     todo = {"id": 1, "title": "Test", "description": "Test description", "completed": False}
     response = client.post("/todos", json=todo)
-    # 앱이 status_code=201을 반환함
-    assert response.status_code == 201
+    # 앱이 status_code=200을 반환함
+    assert response.status_code == 200
     assert response.json()["title"] == "Test"
 
 def test_create_todo_invalid():

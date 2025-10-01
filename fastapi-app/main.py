@@ -70,7 +70,7 @@ def get_todos(completed: Optional[bool] = Query(default=None, description="완�
         return todos
     return [t for t in todos if bool(t.get("completed", False)) == completed]
 
-@app.post("/todos", response_model=TodoItem, status_code=201)
+@app.post("/todos", response_model=TodoItem, status_code=200)
 def create_todo(todo: TodoItem):
     todos = load_todos()
     # 중복 id 방지
