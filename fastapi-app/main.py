@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "4.0.0"
 
 app = FastAPI(title="Todo App", version=APP_VERSION)
 

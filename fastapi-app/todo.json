@@ -1,44 +1,26 @@
 [
     {
-        "id": 1757499981352,
+        "id": 1759306621732,
         "title": "채소",
         "description": "토마토",
+        "completed": true
+    },
+    {
+        "id": 1759306625373,
+        "title": "채소",
+        "description": "오이",
         "completed": false
     },
     {
-        "id": 1757499998483,
-        "title": "과일",
-        "description": "복숭아",
-        "completed": false
-    },
-    {
-        "id": 1757500000361,
+        "id": 1759306628550,
         "title": "과일",
         "description": "사과",
         "completed": false
     },
     {
-        "id": 1757500003865,
-        "title": "과일",
-        "description": "수박",
-        "completed": false
-    },
-    {
-        "id": 1757500005935,
-        "title": "과일",
-        "description": "딸기",
-        "completed": false
-    },
-    {
-        "id": 1757500007357,
-        "title": "과일",
-        "description": "참외",
-        "completed": false
-    },
-    {
-        "id": 1759232642541,
-        "title": "채소",
-        "description": "오이",
+        "id": 1759306811586,
+        "title": "자소서",
+        "description": "10/17",
         "completed": false
     }
 ]
