@@ -5,7 +5,7 @@ import json
 client = TestClient(main.app)
 
 def test_create_todo_rejects_empty_title(tmp_path, monkeypatch):
-    # todo 저장 경로를 임시로 바꿔서 부작용 방지
+    # to-do 저장 경로를 임시로 바꿔서 부작용 방지
     monkeypatch.setattr(main, "TODO_FILE", tmp_path / "todo.json")
     payload = {
         "id": 1,
