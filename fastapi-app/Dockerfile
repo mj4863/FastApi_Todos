@@ -1,24 +1,14 @@
-FROM python:3.9-slim
+# Python 3.9 베이스 이미지 사용
+FROM python:3.9
 
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+# 작업 디렉토리 설정
 WORKDIR /app
 
-# non-root
-RUN addgroup --system app && adduser --system --ingroup app app
+# 필요한 파일 복사
+COPY . .
 
-# 의존성
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# 의존성 설치
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 코드 복사 (컨텍스트가 fastapi-app 이므로 접두어 제거)
-COPY --chown=app:app main.py /app/main.py
-COPY --chown=app:app templates /app/templates
-
-# 데이터 디렉토리(쓰기 가능) + 앱은 읽기 전용
-RUN mkdir /data && chown app:app /data
-ENV TODO_FILE=/data/todo.json
-RUN chmod 444 /app/main.py && chmod -R 555 /app/templates
-
-USER app
-EXPOSE 8000
+# FastAPI 서버 실행
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

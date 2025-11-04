@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import pytest
 from fastapi.testclient import TestClient
 import main  # import module to allow monkeypatching attributes
+import importlib
 from main import app, save_todos, load_todos, TodoItem
 
 client = TestClient(app)
@@ -132,3 +133,55 @@ def test_health_and_version():
     r2 = client.get("/version")
     assert r2.status_code == 200
     assert "version" in r2.json()
+
+def test_validator_empty_title_returns_422():
+    # title이 공백 → field_validator에서 ValueError → 422
+    r = client.post("/todos", json={
+        "id": 1,
+        "title": "   ",
+        "description": "desc",
+        "completed": False
+    })
+    assert r.status_code == 422
+
+def test_corrupted_json_returns_empty_list(monkeypatch, tmp_path):
+    # 손상된 JSON 파일 준비
+    bad = tmp_path / "todo.json"
+    bad.write_text("{this is not valid json}", encoding="utf-8")
+    # 환경변수로 main.TODO_FILE 경로 주입
+    monkeypatch.setenv("TODO_FILE", str(bad))
+    importlib.reload(main)  # env 반영 위해 리로드
+    local_client = TestClient(main.app)
+
+    r = local_client.get("/todos")
+    assert r.status_code == 200
+    assert r.json() == []  # except json.JSONDecodeError -> return []
+
+def test_missing_file_returns_empty_list(monkeypatch, tmp_path):
+    missing = tmp_path / "no_such.json"  # 존재하지 않음
+    monkeypatch.setenv("TODO_FILE", str(missing))
+    importlib.reload(main)
+    local_client = TestClient(main.app)
+
+    r = local_client.get("/todos")
+    assert r.status_code == 200
+    assert r.json() == []  # 파일 없을 때 return []
+
+def test_root_returns_500_when_index_missing(monkeypatch, tmp_path):
+    # INDEX_HTML을 임시 경로로 바꿔서 존재하지 않게 만듦
+    dummy_index = tmp_path / "index.html"  # 아직 생성 안 함
+    monkeypatch.setattr(main, "INDEX_HTML", dummy_index, raising=False)
+
+    r = client.get("/")
+    assert r.status_code == 500
+    assert "index.html not found" in r.text
+
+def test_root_returns_content_when_index_exists(monkeypatch, tmp_path):
+    # INDEX_HTML을 임시 파일로 바꾸고 실제로 생성
+    dummy_index = tmp_path / "index.html"
+    dummy_index.write_text("<h1>Hello</h1>", encoding="utf-8")
+    monkeypatch.setattr(main, "INDEX_HTML", dummy_index, raising=False)
+
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "<h1>Hello</h1>" in r.text
