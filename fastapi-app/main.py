@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 APP_VERSION = "4.0.0"
+NOT_FOUND_MSG = "To-Do item not found"
 
 app = FastAPI(title="Todo App", version=APP_VERSION)
 
@@ -91,7 +92,7 @@ def update_todo(todo_id: int, updated_todo: TodoItem):
             todos[i] = merged
             save_todos(todos)
             return merged
-    raise HTTPException(status_code=404, detail="To-Do item not found")
+    raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)
 
 @app.delete("/todos/{todo_id}", response_model=dict)
 def delete_todo(todo_id: int):
@@ -99,7 +100,7 @@ def delete_todo(todo_id: int):
     new_todos = [t for t in todos if t["id"] != todo_id]
     if len(new_todos) == len(todos):
         # 없던 항목 삭제 요청
-        raise HTTPException(status_code=404, detail="To-Do item not found")
+        raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)
     save_todos(new_todos)
     return {"message": "To-Do item deleted"}
 
@@ -121,4 +122,4 @@ def get_todo(todo_id: int):
     for t in load_todos():
         if t["id"] == todo_id:
             return t
-    raise HTTPException(status_code=404, detail="To-Do item not found")
+    raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)

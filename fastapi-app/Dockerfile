@@ -1,14 +1,23 @@
-# Python 3.9 베이스 이미지 사용
-FROM python:3.9
+FROM python:3.9-slim
 
-# 작업 디렉토리 설정
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# 필요한 파일 복사
-COPY . .
+# 비루트 사용자 추가
+RUN addgroup --system app && adduser --system --ingroup app app
 
-# 의존성 설치
-RUN pip install --no-cache-dir -r requirements.txt
+# 의존성 먼저 캐시
+COPY fastapi-app/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# FastAPI 서버 실행
+# 필요한 파일만 복사 (권장: 서비스 디렉토리만)
+COPY --chown=app:app fastapi-app/main.py /app/main.py
+COPY --chown=app:app fastapi-app/templates /app/templates
+# 초기 todo.json이 꼭 필요하다면:
+# COPY --chown=app:app fastapi-app/todo.json /app/todo.json
+
+USER app
+EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
