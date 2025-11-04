@@ -1,22 +1,25 @@
 FROM python:3.9-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# 비루트 사용자 추가
+# 비루트 유저
 RUN addgroup --system app && adduser --system --ingroup app app
 
-# 의존성 먼저 캐시
+# 의존성
 COPY fastapi-app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# 필요한 파일만 복사 (권장: 서비스 디렉토리만)
+# 코드 복사(읽기 전용으로 만들 예정)
 COPY --chown=app:app fastapi-app/main.py /app/main.py
 COPY --chown=app:app fastapi-app/templates /app/templates
-# 초기 todo.json이 꼭 필요하다면:
-# COPY --chown=app:app fastapi-app/todo.json /app/todo.json
+
+# 데이터 디렉토리(쓰기 가능)
+RUN mkdir /data && chown app:app /data
+ENV TODO_FILE=/data/todo.json
+
+# 코드 리소스는 쓰기권한 제거
+RUN chmod 444 /app/main.py && chmod -R 555 /app/templates
 
 USER app
 EXPOSE 8000

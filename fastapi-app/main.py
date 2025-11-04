@@ -22,7 +22,7 @@ app.add_middleware(
 
 # --- Paths (절대경로 안전화) ---
 BASE_DIR = Path(__file__).resolve().parent
-TODO_FILE = BASE_DIR / "todo.json"
+TODO_FILE = Path(os.getenv("TODO_FILE", str(BASE_DIR / "todo.json")))
 INDEX_HTML = BASE_DIR / "templates" / "index.html"
 
 # --- Model & Validation ---
