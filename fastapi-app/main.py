@@ -2,14 +2,16 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from typing import List, Optional
+from datetime import date as _date
 import json
 import os
 from pathlib import Path
 
-APP_VERSION = "4.0.0"
+APP_VERSION = "5.0.0"
 NOT_FOUND_MSG = "To-Do item not found"
+TODAY = _date.today().isoformat()
 
 app = FastAPI(title="Todo App", version=APP_VERSION)
 
@@ -31,6 +33,7 @@ class TodoItem(BaseModel):
     title: str
     description: str
     completed: bool = False
+    date: str = Field(default_factory=lambda: _date.today().isoformat())
 
     @field_validator("title", "description")
     @classmethod
@@ -38,6 +41,17 @@ class TodoItem(BaseModel):
         if not v or not v.strip():
             raise ValueError("must not be empty")
         return v.strip()
+    
+    @field_validator("date")
+    @classmethod
+    def valid_date(cls, v: str) -> str:
+        # YYYY-MM-DD 형식 검증
+        try:
+            y, m, d = map(int, v.split("-"))
+            _ = _date(y, m, d)
+        except Exception:
+            raise ValueError("date must be YYYY-MM-DD")
+        return v
 
 # --- Storage helpers ---
 def load_todos() -> list[dict]:
@@ -65,11 +79,22 @@ def version():
 
 # --- CRUD + 필터 ---
 @app.get("/todos", response_model=List[TodoItem])
-def get_todos(completed: Optional[bool] = Query(default=None, description="완료 여부 필터")):
+def get_todos(
+    completed: Optional[bool] = Query(default=None, description="완료 여부 필터"),
+    date: Optional[str] = Query(default=None, description="YYYY-MM-DD 특정 날짜 필터")
+):
     todos = load_todos()
-    if completed is None:
-        return todos
-    return [t for t in todos if bool(t.get("completed", False)) == completed]
+    
+    # 날짜 없는 기존 항목은 TODAY로 간주해서 동작 일관성 확보
+    for t in todos:
+        if "date" not in t:
+            t["date"] = TODAY
+
+    if completed is not None:
+        todos = [t for t in todos if bool(t.get("completed", False)) == completed]
+    if date is not None:
+        todos = [t for t in todos if t.get("date") == date]
+    return todos
 
 @app.post("/todos", response_model=TodoItem, status_code=200)
 def create_todo(todo: TodoItem):
@@ -84,11 +109,14 @@ def create_todo(todo: TodoItem):
 @app.put("/todos/{todo_id}", response_model=TodoItem)
 def update_todo(todo_id: int, updated_todo: TodoItem):
     todos = load_todos()
+    
     for i, t in enumerate(todos):
         if t["id"] == todo_id:
-            # id 불변 원칙: URL의 todo_id로 고정
             merged = updated_todo.model_dump()
-            merged["id"] = todo_id
+            merged["id"] = todo_id  # URL 우선
+            # date 필드 누락 방지(구버전 클라이언트 호환)
+            if not merged.get("date"):
+                merged["date"] = t.get("date", TODAY)
             todos[i] = merged
             save_todos(todos)
             return merged
@@ -99,10 +127,19 @@ def delete_todo(todo_id: int):
     todos = load_todos()
     new_todos = [t for t in todos if t["id"] != todo_id]
     if len(new_todos) == len(todos):
-        # 없던 항목 삭제 요청
         raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)
     save_todos(new_todos)
     return {"message": "To-Do item deleted"}
+
+# 단건 조회: 구데이터도 date 보장
+@app.get("/todos/{todo_id}", response_model=TodoItem)
+def get_todo(todo_id: int):
+    for t in load_todos():
+        if t["id"] == todo_id:
+            if "date" not in t:
+                t["date"] = TODAY
+            return t
+    raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)
 
 # --- HTML ---
 @app.get("/", response_class=HTMLResponse)
@@ -116,10 +153,3 @@ async def add_version_header(request: Request, call_next):
     resp = await call_next(request)
     resp.headers["X-App-Version"] = APP_VERSION
     return resp
-
-@app.get("/todos/{todo_id}", response_model=TodoItem)
-def get_todo(todo_id: int):
-    for t in load_todos():
-        if t["id"] == todo_id:
-            return t
-    raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)

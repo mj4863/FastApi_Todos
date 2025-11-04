@@ -1,0 +1,47 @@
+# -----------------------------
+# Python / FastAPI 기본 설정
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+*.db
+
+# 가상환경
+venv/
+.env
+.venv/
+
+# IDE / 편집기
+.vscode/
+.idea/
+*.swp
+
+# 테스트/리포트
+htmlcov/
+.coverage
+coverage.xml
+pytest_report/
+pytest_cache/
+
+# 빌드 / 패키징
+build/
+dist/
+*.egg-info/
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# Docker / Compose
+*.pid
+*.tar
+*.log
+.env.docker
+
+# -----------------------------
+# FastAPI 프로젝트 전용
+# -----------------------------
+todo.json  # 로컬 데이터 저장파일

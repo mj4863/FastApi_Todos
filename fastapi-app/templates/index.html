@@ -111,6 +111,7 @@
           <option value="false">Active</option>
         </select>
       </label>
+      <div id="calendar" style="margin-left:10px"></div>
       <div class="spacer"></div>
       <button id="toggle-theme" class="icon-btn" title="Toggle dark mode">🌓</button>
       <span id="status" role="status" aria-live="polite"></span>
@@ -152,18 +153,27 @@
       err: $("#error"), ver: $("#app-version"), themeBtn: $("#toggle-theme"),
       form: $("#todo-form"), title: $("#title"), desc: $("#description"),
       tpl: /** @type {HTMLTemplateElement} */ ($("#todo-tpl")),
+      cal: $("#calendar"),
     };
-    const STORE = { FILTER:'todo-filter', THEME:'todo-theme' };
+
+    // 날짜 헬퍼
+    const todayISO = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
+    const iso = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const STORE = { FILTER:'todo-filter', THEME:'todo-theme', DATE:'todo-date' };
+    
     const state = {
       get filter(){ return localStorage.getItem(STORE.FILTER) || 'all'; },
       set filter(v){ localStorage.setItem(STORE.FILTER, v); },
       get theme(){ return localStorage.getItem(STORE.THEME) || 'light'; },
       set theme(v){ localStorage.setItem(STORE.THEME, v); },
+      get date(){ return localStorage.getItem(STORE.DATE) || todayISO(); },
+      set date(v){ localStorage.setItem(STORE.DATE, v); },
+      viewMonth: null, // {y,m} 현재 달력에 표시중인 월
     };
     if (state.theme === 'dark') document.body.classList.add('dark');
     els.filter.value = state.filter;
 
-    // ===== API wrapper =====
+    // API: 날짜/필터 조합
     const api = {
       async request(path, opts){
         const r = await fetch(path, { headers:{'Content-Type':'application/json'}, ...opts });
@@ -174,7 +184,13 @@
         }
         return r.status === 204 ? null : r.json();
       },
-      list(filter){ const qs = filter==='all' ? '' : `?completed=${filter}`; return this.request(`/todos${qs}`); },
+      list(date, filter){
+        const q = new URLSearchParams();
+        if (date) q.set('date', date);
+        if (filter !== 'all') q.set('completed', filter);
+        const qs = q.toString(); 
+        return this.request(`/todos${qs ? `?${qs}` : ''}`);
+      },
       create(todo){ return this.request('/todos', { method:'POST', body:JSON.stringify(todo) }); },
       update(id, todo){ return this.request(`/todos/${id}`, { method:'PUT', body:JSON.stringify(todo) }); },
       remove(id){ return this.request(`/todos/${id}`, { method:'DELETE' }); },
@@ -188,14 +204,15 @@
     }
     const plural = (n, w) => `${n} ${w}${n===1?'':'s'}`;
 
+    // 리스트 렌더 (data-date 보존)
     function renderList(todos){
       els.list.textContent = '';
       if (!todos.length){
         const empty = document.createElement('li');
         empty.className = 'todo'; empty.style.borderStyle='dashed'; empty.style.opacity='.7';
-        empty.innerHTML = '<span class="text">No items yet. Add your first to-do!</span>';
+        empty.innerHTML = `<span class="text">No items on ${state.date}. Add your first to-do!</span>`;
         els.list.appendChild(empty);
-        els.status.textContent = `${plural(0,'item')} • 0 done`;
+        els.status.textContent = `0 items • 0 done • ${state.date}`;
         return;
       }
       const frag = document.createDocumentFragment();
@@ -204,41 +221,112 @@
         if (t.completed) done++;
         const node = els.tpl.content.firstElementChild.cloneNode(true);
         node.dataset.id = t.id;
+        node.dataset.date = t.date;                // ★ 날짜 저장
         if (t.completed) node.classList.add('done');
         node.querySelector('.chk').checked = !!t.completed;
         node.querySelector('.text').textContent = `${t.title}: ${t.description}`;
         frag.appendChild(node);
       }
       els.list.appendChild(frag);
-      els.status.textContent = `${plural(todos.length,'item')} • ${done} done`;
+      els.status.textContent = `${todos.length} items • ${done} done • ${state.date}`;
+    }
+
+    // 달력 렌더 (간단 월 캘린더)
+    function renderCalendar(){
+      // 표시 월 초기화
+      const [selY, selM] = state.date.split('-').map(Number);
+      if (!state.viewMonth) state.viewMonth = { y: selY, m: selM };
+
+      const { y, m } = state.viewMonth; // m: 1~12
+      const first = new Date(y, m-1, 1);
+      const last = new Date(y, m, 0);
+      const startWeekday = (first.getDay() + 6) % 7; // 월(0)~일(6)로 정렬
+      const days = last.getDate();
+
+      // 헤더
+      const hdr = document.createElement('div');
+      hdr.style.display='flex'; hdr.style.gap='8px'; hdr.style.alignItems='center';
+      const prev = document.createElement('button'); prev.className='btn'; prev.textContent='←';
+      const next = document.createElement('button'); next.className='btn'; next.textContent='→';
+      const title = document.createElement('strong'); title.textContent = `${y}-${String(m).padStart(2,'0')}`;
+      hdr.append(prev, title, next);
+
+      // 그리드
+      const grid = document.createElement('div');
+      grid.style.display='grid';
+      grid.style.gridTemplateColumns='repeat(7, minmax(28px, 1fr))';
+      grid.style.gap='6px';
+      const weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      for (const w of weekdays){
+        const c = document.createElement('div'); c.style.fontSize='12px'; c.style.color='var(--muted)'; c.textContent = w;
+        grid.appendChild(c);
+      }
+      // 빈칸
+      for (let i=0;i<startWeekday;i++){ grid.appendChild(document.createElement('div')); }
+      // 일자
+      for (let d=1; d<=days; d++){
+        const btn = document.createElement('button');
+        btn.className='btn';
+        btn.textContent = d;
+        const thisISO = iso(y,m,d);
+        btn.dataset.date = thisISO;
+        if (thisISO === state.date){
+          btn.style.borderColor='var(--primary)'; btn.style.boxShadow='var(--ring)';
+        }
+        btn.addEventListener('click', ()=>{
+          state.date = thisISO;
+          load();          // 목록 갱신
+          state.viewMonth = { y, m }; // 월 유지
+          draw();          // 캘린더 리렌더
+        });
+        grid.appendChild(btn);
+      }
+
+      // 네비게이션
+      prev.addEventListener('click', ()=>{
+        const nm = m===1 ? 12 : m-1; const ny = m===1 ? y-1 : y;
+        state.viewMonth = { y: ny, m: nm }; draw();
+      });
+      next.addEventListener('click', ()=>{
+        const nm = m===12 ? 1 : m+1; const ny = m===12 ? y+1 : y;
+        state.viewMonth = { y: ny, m: nm }; draw();
+      });
+
+      // 루트 교체
+      els.cal.textContent = '';
+      els.cal.append(hdr, grid);
+
+      function draw(){ renderCalendar(); }
     }
 
     // ===== Actions =====
     async function load(){
       try {
-        const todos = await api.list(state.filter);
+        const todos = await api.list(state.date, state.filter);
         renderList(todos);
       } catch(e){ showError(e.message); }
     }
 
-    // Delegated list interactions
+    // 체크박스 토글 → date 포함해서 업데이트
     els.list.addEventListener('change', async (e)=>{
-      const chk = e.target.closest('.chk');
-      if (!chk) return;
+      const chk = e.target.closest('.chk'); if (!chk) return;
       const li = e.target.closest('.todo'); const id = Number(li.dataset.id);
       const [title, description] = li.querySelector('.text').textContent.split(': ').map(s=>s ?? '');
-      try { await api.update(id, { id, title, description, completed: chk.checked }); load(); }
+      const date = li.dataset.date || state.date;     // ★ 날짜 보존
+      try { await api.update(id, { id, title, description, completed: chk.checked, date }); load(); }
       catch(err){ showError(err.message); chk.checked = !chk.checked; }
     });
 
+    // 편집/삭제 → date 보존
     els.list.addEventListener('click', async (e)=>{
       const li = e.target.closest('.todo'); if (!li) return;
       const id = Number(li.dataset.id);
+      const date = li.dataset.date || state.date;
       if (e.target.closest('.edit')){
         const [curTitle, curDesc] = li.querySelector('.text').textContent.split(': ');
         const title = prompt('Enter new title:', curTitle); if (title===null) return;
         const description = prompt('Enter new description:', curDesc); if (description===null) return;
-        try { await api.update(id, { id, title, description, completed: li.classList.contains('done') }); load(); }
+        try { await api.update(id, { id, title, description, completed: li.classList.contains('done'), date }); load(); }
         catch(err){ showError(err.message); }
       }
       if (e.target.closest('.del')){
@@ -247,11 +335,12 @@
       }
     });
 
+    // 새 항목 추가 시 현재 선택 날짜로 생성
     els.form.addEventListener('submit', async (ev)=>{
       ev.preventDefault();
       const title = els.title.value.trim(); const description = els.desc.value.trim();
       if (!title || !description) return showError('Title/Description required');
-      const todo = { id: Date.now(), title, description, completed:false };
+      const todo = { id: Date.now(), title, description, completed:false, date: state.date };
       try { await api.create(todo); els.form.reset(); els.title.focus(); load(); }
       catch(err){ showError(err.message); }
     });
@@ -262,10 +351,11 @@
       state.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
     });
 
-    // ===== Boot =====
+    // 부팅
     (async function boot(){
       try { const v = await api.version(); els.ver.textContent = 'v'+(v.version||'unknown'); } catch {}
-      await load();
+      renderCalendar();   // 달력 먼저
+      await load();       // 선택일자 목록 로드
     })();
   </script>
 </body>

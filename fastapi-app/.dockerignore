@@ -1,0 +1,11 @@
+.git
+**/__pycache__/
+**/*.pyc
+venv/
+.env
+*.env
+htmlcov/
+coverage.xml
+pytest_report/
+.pytest_cache/
+.DS_Store

@@ -3,13 +3,15 @@
         "id": 1759306621732,
         "title": "채소",
         "description": "토마토",
-        "completed": true
+        "completed": false,
+        "date": "2025-11-04"
     },
     {
         "id": 1759306625373,
         "title": "채소",
         "description": "오이",
-        "completed": false
+        "completed": false,
+        "date": "2025-11-04"
     },
     {
         "id": 1759306628550,
@@ -21,6 +23,21 @@
         "id": 1759306811586,
         "title": "자소서",
         "description": "10/17",
-        "completed": false
+        "completed": true,
+        "date": "2025-11-04"
+    },
+    {
+        "id": 1762233080092,
+        "title": "장학금 신청",
+        "description": "11/17",
+        "completed": false,
+        "date": "2025-11-04"
+    },
+    {
+        "id": 1762233133419,
+        "title": "김의기 장학생",
+        "description": "신청 마감일",
+        "completed": false,
+        "date": "2025-11-08"
     }
 ]
