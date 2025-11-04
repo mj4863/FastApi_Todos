@@ -93,6 +93,17 @@
     body.dark .err{ background:#2a0f17; border-color:#3b0f19; color:#ff98a7 }
 
     footer{ border-top:1px solid var(--border); display:flex; justify-content:space-between; color:var(--muted) }
+    
+    .inline-input{
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--fg);
+      padding:6px 8px;
+      border-radius:8px;
+      outline:none;
+      min-width: 120px;
+    }
+    .inline-input:focus-visible{ box-shadow:var(--ring); border-color:var(--primary) }
   </style>
 </head>
 <body>
@@ -184,6 +195,7 @@
         }
         return r.status === 204 ? null : r.json();
       },
+
       list(date, filter){
         const q = new URLSearchParams();
         if (date) q.set('date', date);
@@ -191,6 +203,14 @@
         const qs = q.toString(); 
         return this.request(`/todos${qs ? `?${qs}` : ''}`);
       },
+
+      updateDate(id, date){
+        return this.request(`/todos/${id}/date`, {
+          method: 'PATCH',
+          body: JSON.stringify({ date })
+        });
+      },
+
       create(todo){ return this.request('/todos', { method:'POST', body:JSON.stringify(todo) }); },
       update(id, todo){ return this.request(`/todos/${id}`, { method:'PUT', body:JSON.stringify(todo) }); },
       remove(id){ return this.request(`/todos/${id}`, { method:'DELETE' }); },
@@ -221,10 +241,21 @@
         if (t.completed) done++;
         const node = els.tpl.content.firstElementChild.cloneNode(true);
         node.dataset.id = t.id;
-        node.dataset.date = t.date;                // ★ 날짜 저장
+        node.dataset.date = t.date;                // 날짜 저장
+        node.dataset.title = t.title;           
+        node.dataset.description = t.description;
         if (t.completed) node.classList.add('done');
         node.querySelector('.chk').checked = !!t.completed;
         node.querySelector('.text').textContent = `${t.title}: ${t.description}`;
+
+        // Move 버튼 추가
+        const delBtn = node.querySelector('.del');
+        const moveBtn = document.createElement('button');
+        moveBtn.className = 'btn move';
+        moveBtn.type = 'button';
+        moveBtn.textContent = 'Move';
+        delBtn.before(moveBtn);
+
         frag.appendChild(node);
       }
       els.list.appendChild(frag);
@@ -240,7 +271,7 @@
       const { y, m } = state.viewMonth; // m: 1~12
       const first = new Date(y, m-1, 1);
       const last = new Date(y, m, 0);
-      const startWeekday = (first.getDay() + 6) % 7; // 월(0)~일(6)로 정렬
+      const startWeekday = first.getDay(); // 0: 일요일, 6: 토요일 그대로 사용
       const days = last.getDate();
 
       // 헤더
@@ -256,7 +287,7 @@
       grid.style.display='grid';
       grid.style.gridTemplateColumns='repeat(7, minmax(28px, 1fr))';
       grid.style.gap='6px';
-      const weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       for (const w of weekdays){
         const c = document.createElement('div'); c.style.fontSize='12px'; c.style.color='var(--muted)'; c.textContent = w;
         grid.appendChild(c);
@@ -307,12 +338,130 @@
       } catch(e){ showError(e.message); }
     }
 
+    function makeInput(value, placeholder){
+      const i = document.createElement('input');
+      i.type = 'text';
+      i.className = 'inline-input';
+      i.value = value ?? '';
+      i.placeholder = placeholder ?? '';
+      return i;
+    }
+
+    function startEdit(li){
+      if (li.classList.contains('editing')) return;
+      li.classList.add('editing');
+
+      const textEl = li.querySelector('.text');
+      const chk = li.querySelector('.chk');
+      const editBtn = li.querySelector('.btn.save, .btn.edit') || li.querySelector('.edit');
+      const delBtn = li.querySelector('.del');
+
+      const curTitle = li.dataset.title ?? '';
+      const curDesc  = li.dataset.description ?? '';
+      const curDate  = li.dataset.date || state.date;   // 현재 날짜
+
+      li.dataset._origTitle = curTitle;
+      li.dataset._origDesc  = curDesc;
+      li.dataset._origDate  = curDate;
+
+      const wrap = document.createElement('span');
+      wrap.className = 'inline-wrap';
+      const titleInput = makeInput(curTitle, 'Title');
+      const descInput  = makeInput(curDesc,  'Description');
+      
+      titleInput.name = 'edit-title';
+      descInput.name  = 'edit-desc';
+
+      // 날짜 입력 추가
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'inline-input';
+      dateInput.value = curDate;
+      dateInput.name = 'edit-date';
+      dateInput.style.minWidth = '140px';
+
+      wrap.append(titleInput, descInput, dateInput);
+      textEl.replaceWith(wrap);
+
+      chk.disabled = true;
+
+      editBtn.textContent = 'Save';
+      editBtn.classList.add('save');
+      editBtn.classList.remove('edit');
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn cancel';
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = 'Cancel';
+      delBtn.before(cancelBtn);
+
+      function onKey(e){
+        if (e.key === 'Enter'){ saveEdit(li); }
+        else if (e.key === 'Escape'){ cancelEdit(li); }
+      }
+      titleInput.addEventListener('keydown', onKey);
+      descInput.addEventListener('keydown', onKey);
+      dateInput.addEventListener('keydown', onKey);
+
+      titleInput.focus();
+    }
+
+    async function saveEdit(li){
+      const id = Number(li.dataset.id);
+      const completed = li.classList.contains('done');
+
+      const title = li.querySelector('input[name="edit-title"]')?.value.trim() ?? '';
+      const description = li.querySelector('input[name="edit-desc"]')?.value.trim() ?? '';
+      // 날짜 읽기 (없으면 기존값 유지)
+      const date = li.querySelector('input[name="edit-date"]')?.value || (li.dataset.date || state.date);
+
+      if (!title || !description){
+        showError('Title/Description required');
+        return;
+      }
+
+      try{
+        await api.update(id, { id, title, description, completed, date });
+        await load();
+      } catch(err){
+        showError(err.message);
+      }
+    }
+
+    function cancelEdit(li){
+      const origTitle = li.dataset._origTitle ?? '';
+      const origDesc  = li.dataset._origDesc ?? '';
+      const origDate = (li.dataset._origDate ?? li.dataset.date) || state.date;
+
+      const wrap = li.querySelector('.inline-wrap');
+      const textEl = document.createElement('span');
+      textEl.className = 'text';
+      textEl.textContent = `${origTitle}: ${origDesc}`;
+      wrap.replaceWith(textEl);
+
+      const saveBtn = li.querySelector('.save');
+      if (saveBtn){ saveBtn.textContent = 'Edit'; saveBtn.classList.add('edit'); saveBtn.classList.remove('save'); }
+      const cancelBtn = li.querySelector('.cancel'); if (cancelBtn) cancelBtn.remove();
+
+      const chk = li.querySelector('.chk'); chk.disabled = false;
+
+      // dataset도 원복
+      li.dataset.title = origTitle;
+      li.dataset.description = origDesc;
+      li.dataset.date = origDate;
+
+      li.classList.remove('editing');
+    }
+
+
     // 체크박스 토글 → date 포함해서 업데이트
     els.list.addEventListener('change', async (e)=>{
       const chk = e.target.closest('.chk'); if (!chk) return;
-      const li = e.target.closest('.todo'); const id = Number(li.dataset.id);
-      const [title, description] = li.querySelector('.text').textContent.split(': ').map(s=>s ?? '');
-      const date = li.dataset.date || state.date;     // ★ 날짜 보존
+      const li = e.target.closest('.todo');
+      const id = Number(li.dataset.id);
+      const title = li.dataset.title ?? '';
+      const description = li.dataset.description ?? '';
+      const date = li.dataset.date || state.date;
       try { await api.update(id, { id, title, description, completed: chk.checked, date }); load(); }
       catch(err){ showError(err.message); chk.checked = !chk.checked; }
     });
@@ -322,13 +471,36 @@
       const li = e.target.closest('.todo'); if (!li) return;
       const id = Number(li.dataset.id);
       const date = li.dataset.date || state.date;
-      if (e.target.closest('.edit')){
-        const [curTitle, curDesc] = li.querySelector('.text').textContent.split(': ');
-        const title = prompt('Enter new title:', curTitle); if (title===null) return;
-        const description = prompt('Enter new description:', curDesc); if (description===null) return;
-        try { await api.update(id, { id, title, description, completed: li.classList.contains('done'), date }); load(); }
-        catch(err){ showError(err.message); }
+
+      if (e.target.closest('.edit')){              // 기존: Edit → 인라인 편집 시작
+        startEdit(li);
+        return;
       }
+      if (e.target.closest('.save')){              // 새로 추가: Save → 저장
+        await saveEdit(li);
+        return;
+      }
+      if (e.target.closest('.cancel')){            // 새로 추가: Cancel → 취소
+        cancelEdit(li);
+        return;
+      }
+      
+      if (e.target.closest('.move')){
+        // 간단히 prompt로 날짜 받기 (YYYY-MM-DD)
+        const current = li.dataset.date || state.date;
+        const newDate = prompt('Move to date (YYYY-MM-DD):', current);
+        if (!newDate) return;
+
+        try{
+          await api.updateDate(id, newDate); // PATCH 호출
+          state.date = newDate;   // ← 이동한 날짜로 달력/리스트도 전환
+          await load();                      // 새 날짜에 맞춰 목록 갱신
+        }catch(err){
+          showError(err.message);
+        }
+        return;
+      }
+
       if (e.target.closest('.del')){
         if (!confirm('Delete this item?')) return;
         try { await api.remove(id); load(); } catch(err){ showError(err.message); }
@@ -357,6 +529,8 @@
       renderCalendar();   // 달력 먼저
       await load();       // 선택일자 목록 로드
     })();
+
+
   </script>
 </body>
 </html>

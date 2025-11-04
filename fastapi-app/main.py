@@ -52,6 +52,19 @@ class TodoItem(BaseModel):
         except Exception:
             raise ValueError("date must be YYYY-MM-DD")
         return v
+    
+class DateOnly(BaseModel):
+    date: str = Field(..., description="YYYY-MM-DD")
+
+    @field_validator("date")
+    @classmethod
+    def valid_date(cls, v: str) -> str:
+        try:
+            y, m, d = map(int, v.split("-"))
+            _ = _date(y, m, d)
+        except Exception:
+            raise ValueError("date must be YYYY-MM-DD")
+        return v
 
 # --- Storage helpers ---
 def load_todos() -> list[dict]:
@@ -153,3 +166,18 @@ async def add_version_header(request: Request, call_next):
     resp = await call_next(request)
     resp.headers["X-App-Version"] = APP_VERSION
     return resp
+
+# --- Date ---
+@app.patch("/todos/{todo_id}/date", response_model=TodoItem)
+def update_todo_date(todo_id: int, payload: DateOnly):
+    todos = load_todos()
+    for i, t in enumerate(todos):
+        if t["id"] == todo_id:
+            # 구데이터 호환: 기본 필드 보존
+            if "date" not in t:
+                t["date"] = TODAY
+            t["date"] = payload.date
+            save_todos(todos)
+            # 응답도 TodoItem 스키마에 맞춰 반환
+            return t
+    raise HTTPException(status_code=404, detail=NOT_FOUND_MSG)
