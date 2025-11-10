@@ -201,8 +201,12 @@
     };
 
     // 날짜 헬퍼
-    const todayISO = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
     const iso = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const todayISO = () => iso(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+      new Date().getDate()
+    );
     const STORE = { FILTER:'todo-filter', THEME:'todo-theme', DATE:'todo-date' };
     
     const state = {
@@ -506,12 +510,23 @@
       // 빈칸
       for (let i=0; i<startWeekday; i++) grid.appendChild(document.createElement('div'));
 
+      // 오늘 날짜 계산 (YYYY-MM-DD)
+      const today = todayISO();
+
       for (let d=1; d<=days; d++){
         const btn = document.createElement('button');
         btn.className='btn';
         btn.textContent = d;
+
         const thisISO = iso(y,m,d);
         btn.dataset.date = thisISO;
+
+        // ✅ 오늘 날짜 강조 (라이트/다크 모두 잘 보이는 기본 스타일)
+        if (thisISO === today) {
+          btn.style.outline = '2px solid var(--primary)';
+          btn.style.fontWeight = 'bold';
+        }
+
         if (thisISO === state.date){
           btn.style.borderColor='var(--primary)';
           btn.style.boxShadow='var(--ring)';
