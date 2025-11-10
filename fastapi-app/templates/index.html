@@ -104,6 +104,39 @@
       min-width: 120px;
     }
     .inline-input:focus-visible{ box-shadow:var(--ring); border-color:var(--primary) }
+
+    /* Year/Month Picker Popup */
+    .picker-pop{
+      position:absolute;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px;
+      box-shadow:var(--shadow);
+      color:var(--fg); /* ✅ 추가: 다크 모드 대비 유지 */
+      z-index:10;
+    }
+
+    .picker-title{
+      font-weight:600;
+      margin-bottom:6px;
+      color:var(--fg); /* ✅ 글자색 명시 */
+    }
+
+    .picker-chip{
+      border:1px solid var(--border);
+      background:transparent;
+      border-radius:8px;
+      padding:6px 8px;
+      cursor:pointer;
+      color:var(--fg); /* ✅ 추가 */
+      transition:background 0.2s ease, color 0.2s ease;
+    }
+
+    .picker-chip:hover{
+      background:var(--primary-weak);
+      color:var(--fg);
+    }
   </style>
 </head>
 <body>
@@ -262,39 +295,217 @@
       els.status.textContent = `${todos.length} items • ${done} done • ${state.date}`;
     }
 
-    // 달력 렌더 (간단 월 캘린더)
+    // 달력 렌더 (연/월 빠른 이동 + 일요일 시작)
     function renderCalendar(){
-      // 표시 월 초기화
+      // 상태 초기화
       const [selY, selM] = state.date.split('-').map(Number);
       if (!state.viewMonth) state.viewMonth = { y: selY, m: selM };
 
       const { y, m } = state.viewMonth; // m: 1~12
       const first = new Date(y, m-1, 1);
-      const last = new Date(y, m, 0);
-      const startWeekday = first.getDay(); // 0: 일요일, 6: 토요일 그대로 사용
+      const last  = new Date(y, m,   0);
+      const startWeekday = first.getDay(); // 0=Sun ~ 6=Sat
       const days = last.getDate();
 
-      // 헤더
-      const hdr = document.createElement('div');
-      hdr.style.display='flex'; hdr.style.gap='8px'; hdr.style.alignItems='center';
-      const prev = document.createElement('button'); prev.className='btn'; prev.textContent='←';
-      const next = document.createElement('button'); next.className='btn'; next.textContent='→';
-      const title = document.createElement('strong'); title.textContent = `${y}-${String(m).padStart(2,'0')}`;
-      hdr.append(prev, title, next);
+      // 루트 비우기
+      els.cal.textContent = '';
+      els.cal.style.position = 'relative';
 
-      // 그리드
+      // ===== 헤더 =====
+      const hdr = document.createElement('div');
+      hdr.style.display='flex';
+      hdr.style.gap='8px';
+      hdr.style.alignItems='center';
+      hdr.style.marginBottom='6px';
+
+      const yPrev = document.createElement('button'); yPrev.className='btn'; yPrev.textContent='«';
+      const mPrev = document.createElement('button'); mPrev.className='btn'; mPrev.textContent='‹';
+
+      const titleBtn = document.createElement('button');
+      titleBtn.className='btn';
+      titleBtn.textContent = `${y}-${String(m).padStart(2,'0')} ▼`;
+      titleBtn.style.cursor = 'pointer';
+      titleBtn.title = 'Click to choose year/month';
+
+      const mNext = document.createElement('button'); mNext.className='btn'; mNext.textContent='›';
+      const yNext = document.createElement('button'); yNext.className='btn'; yNext.textContent='»';
+
+      hdr.append(yPrev, mPrev, titleBtn, mNext, yNext);
+      els.cal.appendChild(hdr);
+
+      // ===== 팝오버 (연/월 선택) =====
+      let pop = null;
+      let docHandler = null;
+
+      function closePicker(){
+        if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+        pop = null;
+        if (docHandler){
+          document.removeEventListener('click', docHandler, true);
+          docHandler = null;
+        }
+      }
+
+      function openPicker(){
+        closePicker(); // 하나만 열리도록
+
+        // 현재 보이는 연도 묶음의 시작 연도(12년 단위 페이지네이션)
+        let yearStart = y - 6; // 중앙정렬 느낌(현재 y가 가운데쯤)
+
+        // 팝오버 DOM
+        pop = document.createElement('div');
+        pop.className = 'picker-pop';
+
+        // 상단 바: 이전/다음 페이지 버튼 + 타이틀
+        const topRow = document.createElement('div');
+        topRow.style.display='flex';
+        topRow.style.alignItems='center';
+        topRow.style.justifyContent='space-between';
+        topRow.style.gap='8px';
+
+        const prevYears = document.createElement('button');
+        prevYears.className = 'btn';
+        prevYears.textContent = '⟨';
+
+        const title = document.createElement('div');
+        title.className = 'picker-title';
+        // title 텍스트는 renderYearGrid에서 세팅
+
+        const nextYears = document.createElement('button');
+        nextYears.className = 'btn';
+        nextYears.textContent = '⟩';
+
+        topRow.append(prevYears, title, nextYears);
+        pop.appendChild(topRow);
+
+        // 연도 그리드
+        const yGrid = document.createElement('div');
+        yGrid.className = 'picker-grid';
+        pop.appendChild(yGrid);
+
+        // 하단 버튼들
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'btn';
+        closeBtn.textContent = 'Close';
+        closeBtn.style.marginTop = '8px';
+        closeBtn.addEventListener('click', closePicker);
+        pop.appendChild(closeBtn);
+
+        // 그리드 그리는 함수 (현재 yearStart 기준 12개)
+        function renderYearGrid(){
+          const years = Array.from({length: 12}, (_,i)=> yearStart + i);
+          // 타이틀: 범위 표시
+          title.textContent = `${years[0]} – ${years[years.length-1]}`;
+
+          yGrid.textContent = '';
+          years.forEach(Y=>{
+            const chip = document.createElement('button');
+            chip.className = 'picker-chip';
+            chip.textContent = String(Y);
+            if (Y === y) chip.style.boxShadow = 'var(--ring)'; // 현재 표시 중인 연도 하이라이트
+            chip.addEventListener('click', ()=> renderMonthPicker(Y));
+            yGrid.appendChild(chip);
+          });
+        }
+
+        // 페이지네이션: 12년 단위 이동
+        prevYears.addEventListener('click', ()=>{
+          yearStart -= 12;
+          renderYearGrid();
+        });
+        nextYears.addEventListener('click', ()=>{
+          yearStart += 12;
+          renderYearGrid();
+        });
+
+        // 팝오버 위치: 제목 버튼 아래
+        const rect = titleBtn.getBoundingClientRect();
+        const calRect = els.cal.getBoundingClientRect();
+        pop.style.top  = `${(rect.bottom - calRect.top) + 4}px`;
+        pop.style.left = `${(rect.left   - calRect.left)}px`;
+
+        els.cal.appendChild(pop);
+
+        // 바깥 클릭 시 닫기 (중복 등록 방지)
+        docHandler = (e)=>{
+          if (!pop) return;
+          if (!pop.contains(e.target) && e.target !== titleBtn) closePicker();
+        };
+        document.addEventListener('click', docHandler, true);
+
+        // 최초 렌더
+        renderYearGrid();
+      }
+
+      function renderMonthPicker(targetYear){
+        pop.textContent = '';
+
+        const t = document.createElement('div');
+        t.className = 'picker-title';
+        t.innerHTML = `<span>${targetYear} — Select Month</span>`;
+        pop.appendChild(t);
+
+        const mGrid = document.createElement('div');
+        mGrid.className = 'picker-grid';
+        for (let mm=1; mm<=12; mm++){
+          const chip = document.createElement('button');
+          chip.className = 'picker-chip';
+          chip.textContent = String(mm).padStart(2,'0');
+          if (targetYear === y && mm === m) chip.style.boxShadow = 'var(--ring)';
+          chip.addEventListener('click', ()=>{
+            state.viewMonth = { y: targetYear, m: mm };
+            renderCalendar(); // 달력 리렌더
+            closePicker();
+          });
+          mGrid.appendChild(chip);
+        }
+        pop.appendChild(mGrid);
+
+        const backRow = document.createElement('div');
+        backRow.style.display='flex';
+        backRow.style.justifyContent='space-between';
+        backRow.style.marginTop='8px';
+
+        const backBtn = document.createElement('button');
+        backBtn.className = 'btn'; backBtn.textContent = 'Back to Years';
+        backBtn.addEventListener('click', openPicker);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'btn'; closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', closePicker);
+
+        backRow.append(backBtn, closeBtn);
+        pop.appendChild(backRow);
+      }
+
+      titleBtn.addEventListener('click', ()=>{
+        if (pop) closePicker(); else openPicker();
+      });
+
+      // 연/월 이동 버튼
+      yPrev.addEventListener('click', ()=>{ state.viewMonth = { y: y-1, m }; renderCalendar(); });
+      yNext.addEventListener('click', ()=>{ state.viewMonth = { y: y+1, m }; renderCalendar(); });
+      mPrev.addEventListener('click', ()=>{ const nm = m===1 ? 12 : m-1; const ny = m===1 ? y-1 : y; state.viewMonth = { y: ny, m: nm }; renderCalendar(); });
+      mNext.addEventListener('click', ()=>{ const nm = m===12 ? 1 : m+1; const ny = m===12 ? y+1 : y; state.viewMonth = { y: ny, m: nm }; renderCalendar(); });
+
+      // ===== 요일 헤더 + 날짜 그리드 =====
       const grid = document.createElement('div');
       grid.style.display='grid';
       grid.style.gridTemplateColumns='repeat(7, minmax(28px, 1fr))';
       grid.style.gap='6px';
-      const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+      const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; // 일요일 시작
       for (const w of weekdays){
-        const c = document.createElement('div'); c.style.fontSize='12px'; c.style.color='var(--muted)'; c.textContent = w;
+        const c = document.createElement('div');
+        c.style.fontSize='12px';
+        c.style.color='var(--muted)';
+        c.textContent = w;
         grid.appendChild(c);
       }
+
       // 빈칸
-      for (let i=0;i<startWeekday;i++){ grid.appendChild(document.createElement('div')); }
-      // 일자
+      for (let i=0; i<startWeekday; i++) grid.appendChild(document.createElement('div'));
+
       for (let d=1; d<=days; d++){
         const btn = document.createElement('button');
         btn.className='btn';
@@ -302,32 +513,19 @@
         const thisISO = iso(y,m,d);
         btn.dataset.date = thisISO;
         if (thisISO === state.date){
-          btn.style.borderColor='var(--primary)'; btn.style.boxShadow='var(--ring)';
+          btn.style.borderColor='var(--primary)';
+          btn.style.boxShadow='var(--ring)';
         }
         btn.addEventListener('click', ()=>{
           state.date = thisISO;
-          load();          // 목록 갱신
+          load();                  // 목록 갱신
           state.viewMonth = { y, m }; // 월 유지
-          draw();          // 캘린더 리렌더
+          renderCalendar();
         });
         grid.appendChild(btn);
       }
 
-      // 네비게이션
-      prev.addEventListener('click', ()=>{
-        const nm = m===1 ? 12 : m-1; const ny = m===1 ? y-1 : y;
-        state.viewMonth = { y: ny, m: nm }; draw();
-      });
-      next.addEventListener('click', ()=>{
-        const nm = m===12 ? 1 : m+1; const ny = m===12 ? y+1 : y;
-        state.viewMonth = { y: ny, m: nm }; draw();
-      });
-
-      // 루트 교체
-      els.cal.textContent = '';
-      els.cal.append(hdr, grid);
-
-      function draw(){ renderCalendar(); }
+      els.cal.appendChild(grid);
     }
 
     // ===== Actions =====

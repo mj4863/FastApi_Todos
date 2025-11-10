@@ -8,7 +8,7 @@ from datetime import date as _date
 import json
 import os
 from pathlib import Path
-from prometheus_fastapi_instrumentator import Instrumentator # type: ignore
+from prometheus_fastapi_instrumentator import Instrumentator
 
 APP_VERSION = "6.0.0"
 NOT_FOUND_MSG = "To-Do item not found"
