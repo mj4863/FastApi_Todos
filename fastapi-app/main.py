@@ -8,12 +8,16 @@ from datetime import date as _date
 import json
 import os
 from pathlib import Path
+from prometheus_fastapi_instrumentator import Instrumentator # type: ignore
 
-APP_VERSION = "5.0.0"
+APP_VERSION = "6.0.0"
 NOT_FOUND_MSG = "To-Do item not found"
 TODAY = _date.today().isoformat()
 
 app = FastAPI(title="Todo App", version=APP_VERSION)
+
+# Prometheus 메트릭스 엔드포인트 (/metrics)
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 app.add_middleware(
     CORSMiddleware,
