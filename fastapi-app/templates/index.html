@@ -335,6 +335,42 @@
       const yNext = document.createElement('button'); yNext.className='btn'; yNext.textContent='»';
 
       hdr.append(yPrev, mPrev, titleBtn, mNext, yNext);
+
+      // === Today 버튼 추가 (달력 옆) ===
+      const todayBtn = document.createElement('button');
+      todayBtn.className = 'btn';
+      todayBtn.textContent = 'Today';
+      todayBtn.title = 'Jump to today';
+      todayBtn.style.fontWeight = '600';
+
+      // 🌈 스타일 추가 — 눈에 띄는 색상 (테마 호환)
+      todayBtn.style.background = 'var(--primary)';
+      todayBtn.style.color = 'white';
+      todayBtn.style.border = 'none';
+      todayBtn.style.fontWeight = '600';
+      todayBtn.style.padding = '8px 14px';
+      todayBtn.style.borderRadius = '10px';
+      todayBtn.style.cursor = 'pointer';
+      todayBtn.style.transition = 'all 0.2s ease';
+      todayBtn.addEventListener('mouseover', () => todayBtn.style.opacity = '0.85');
+      todayBtn.addEventListener('mouseout', () => todayBtn.style.opacity = '1');
+
+      // 클릭 시: viewMonth 를 오늘 연/월로, state.date 를 오늘로 세팅 후 갱신
+      todayBtn.addEventListener('click', () => {
+        const now = new Date();
+        const ty = now.getFullYear();
+        const tm = now.getMonth() + 1;
+        const td = now.getDate();
+
+        state.viewMonth = { y: ty, m: tm };     // 달력 뷰를 오늘 연/월로
+        state.date = iso(ty, tm, td);           // 선택일도 오늘로
+        renderCalendar();                       // 달력 재렌더 (오늘로 스크롤/강조)
+        load();                                 // 오늘 날짜의 todo 목록 로드
+      });
+
+      // 헤더의 맨 끝에 배치 (달력 옆)
+      hdr.appendChild(todayBtn);
+
       els.cal.appendChild(hdr);
 
       // ===== 팝오버 (연/월 선택) =====
