@@ -9,6 +9,28 @@ services:
     ports:
       - "5001:8000"
 
+  jmeter:
+    build:
+      context: ./jmeter
+      dockerfile: Dockerfile
+    container_name: jmeter
+    volumes:
+      - ./jmeter:/jmeter
+    command:
+      - jmeter
+      - -n
+      - -t
+      - /jmeter/fastapi_test_plan.jmx
+      - -l
+      - /jmeter/results.jtl
+      - -JBASE_URL=http://fastapi-app:5001
+      - -Jjmeter.save.saveservice.output_format=csv
+      - -e
+      - -o
+      - /jmeter/report
+    networks:
+      - loadtest-net
+
   sonarqube:
     image: sonarqube:latest
     container_name: sonarqube
@@ -47,6 +69,8 @@ services:
     container_name: node-exporter
     ports:
       - "7100:9100"
+    networks:
+      - loadtest-net
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -61,6 +85,10 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     restart: unless-stopped
+
+networks:
+  loadtest-net:
+    driver: bridge
 
 volumes:
   sonarqube_conf:

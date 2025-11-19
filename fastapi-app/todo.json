@@ -39,5 +39,19 @@
         "description": "신청 마감일",
         "completed": true,
         "date": "2025-11-07"
+    },
+    {
+        "id": 1762793740133,
+        "title": "과일",
+        "description": "멜론",
+        "completed": false,
+        "date": "2025-11-11"
+    },
+    {
+        "id": 1762793745655,
+        "title": "오픈소스 과제",
+        "description": "마감일",
+        "completed": true,
+        "date": "2025-11-11"
     }
 ]
