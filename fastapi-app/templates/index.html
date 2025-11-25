@@ -3,139 +3,265 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>To-Do List</title>
+  <title>✨ To-Do List</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ===== Design Tokens ===== */
     :root{
-      --bg:#f6f7fb; --fg:#0f1222; --muted:#6b7280;
-      --card:#fff; --border:#e6e8f0; --shadow:0 8px 30px rgba(0,0,0,.06);
-      --primary:#6366f1; --primary-weak:#eef2ff; --danger:#ef4444;
-      --radius:14px; --ring:0 0 0 3px rgba(99,102,241,.25);
+      --bg:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --fg:#1a202c; --muted:#718096;
+      --card:#ffffff; --border:#e2e8f0; --shadow:0 20px 60px rgba(0,0,0,.15);
+      --primary:#667eea; --primary-hover:#5a67d8; --primary-weak:#eef2ff; --danger:#f56565;
+      --success:#48bb78; --warning:#ed8936;
+      --radius:16px; --ring:0 0 0 4px rgba(102,126,234,.2);
       color-scheme:light dark;
     }
     body.dark{
-      --bg:#0b0d14; --fg:#e5e7eb; --muted:#9aa0aa;
-      --card:#0f1420; --border:#1f2430; --shadow:0 8px 30px rgba(0,0,0,.4);
-      --primary:#8b93ff; --primary-weak:#111634; --danger:#ff6b6b;
-      --ring:0 0 0 3px rgba(139,147,255,.25);
+      --bg:linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+      --fg:#f7fafc; --muted:#a0aec0;
+      --card:#2d3748; --border:#4a5568; --shadow:0 20px 60px rgba(0,0,0,.5);
+      --primary:#7c3aed; --primary-hover:#6d28d9; --primary-weak:#2d1b69; --danger:#fc8181;
+      --success:#68d391; --warning:#f6ad55;
+      --ring:0 0 0 4px rgba(124,58,237,.3);
     }
 
     /* ===== Base ===== */
-    *{box-sizing:border-box}
+    *{box-sizing:border-box; margin:0; padding:0}
     body{
-      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color:var(--fg); background:var(--bg);
-      display:grid; place-items:start center; padding:clamp(16px,3vw,32px);
+      background-attachment:fixed;
+      min-height:100vh; display:grid; place-items:center;
+      padding:clamp(20px,4vw,40px);
     }
     .app{
-      width:min(860px,100%); background:var(--card); border:1px solid var(--border);
-      border-radius:calc(var(--radius) + 2px); box-shadow:var(--shadow); overflow:hidden;
+      width:min(920px,100%); background:var(--card);
+      border-radius:24px; box-shadow:var(--shadow); overflow:hidden;
+      backdrop-filter:blur(10px);
+      animation:slideUp 0.5s ease-out;
     }
-    header,.toolbar,footer{ padding:16px clamp(16px,3vw,24px); }
-    header{ display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--border)}
-    h1{ margin:0; font-size:clamp(20px,2.4vw,28px) }
-    .badge{ padding:2px 8px; border-radius:999px; border:1px solid var(--border);
-      background:var(--primary-weak); color:var(--primary); font-size:12px }
+    @keyframes slideUp{
+      from{ opacity:0; transform:translateY(20px) }
+      to{ opacity:1; transform:translateY(0) }
+    }
+    header,.toolbar,footer{ padding:20px clamp(20px,4vw,32px); }
+    header{
+      display:flex; gap:12px; align-items:center;
+      background:linear-gradient(to right, var(--primary-weak), transparent);
+      border-bottom:2px solid var(--border);
+    }
+    h1{
+      font-size:clamp(24px,3vw,32px); font-weight:700;
+      background:linear-gradient(135deg, var(--primary), var(--primary-hover));
+      -webkit-background-clip:text; background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+    .badge{
+      padding:4px 12px; border-radius:999px;
+      background:var(--primary); color:white;
+      font-size:11px; font-weight:600; letter-spacing:0.5px;
+      box-shadow:0 2px 8px rgba(102,126,234,.3);
+    }
 
-    .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--border)}
-    .spacer{ flex:1 1 auto }
-    label,select{ font-size:14px; color:var(--muted) }
-    select{
-      appearance:none; border:1px solid var(--border); background:transparent; color:var(--fg);
-      padding:8px 12px; border-radius:10px; outline:none;
+    .toolbar{
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+      background:rgba(102,126,234,.02);
+      border-bottom:1px solid var(--border);
     }
-    select:focus-visible{ box-shadow:var(--ring) }
+    .spacer{ flex:1 1 auto }
+    label{
+      font-size:14px; font-weight:500; color:var(--muted);
+      display:flex; align-items:center; gap:8px;
+    }
+    select{
+      appearance:none; border:2px solid var(--border);
+      background:var(--card); color:var(--fg);
+      padding:10px 14px; border-radius:12px; outline:none;
+      font-weight:500; cursor:pointer;
+      transition:all 0.2s ease;
+    }
+    select:hover{ border-color:var(--primary) }
+    select:focus-visible{ box-shadow:var(--ring); border-color:var(--primary) }
 
     .icon-btn{
-      height:36px; width:36px; display:grid; place-items:center; border-radius:50%;
-      border:1px solid var(--border); background:transparent; cursor:pointer;
+      height:44px; width:44px; display:grid; place-items:center;
+      border-radius:50%; border:2px solid var(--border);
+      background:var(--card); cursor:pointer;
+      transition:all 0.3s ease; font-size:20px;
     }
-    .icon-btn:hover{ background:var(--primary-weak) }
+    .icon-btn:hover{
+      background:var(--primary); border-color:var(--primary);
+      transform:rotate(180deg) scale(1.1);
+    }
 
     #status{
-      color:var(--muted); font-size:13px; padding:6px 10px; border-radius:999px;
-      border:1px solid var(--border);
+      color:var(--muted); font-size:13px; font-weight:500;
+      padding:8px 16px; border-radius:999px;
+      background:var(--primary-weak); border:2px solid var(--border);
     }
 
-    main{ padding:10px clamp(16px,3vw,24px) 20px }
+    main{ padding:24px clamp(20px,4vw,32px) 28px }
 
     /* ===== List ===== */
-    ul#todo-list{ margin:0; padding:0; list-style:none; display:grid; gap:10px }
+    ul#todo-list{ list-style:none; display:grid; gap:12px }
     li.todo{
-      display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px;
-      border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; background:transparent;
+      display:grid; grid-template-columns:auto 1fr auto auto auto; align-items:center; gap:14px;
+      border:2px solid var(--border); border-radius:var(--radius);
+      padding:16px 18px; background:var(--card);
+      transition:all 0.3s ease;
+      box-shadow:0 2px 8px rgba(0,0,0,.05);
     }
-    input[type="checkbox"]{ width:20px; height:20px; accent-color:var(--primary); cursor:pointer }
-    .text{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis }
-    .done .text{ text-decoration:line-through; opacity:.85 }
-    .btn{ border:1px solid var(--border); background:transparent; color:var(--fg);
-      padding:8px 12px; border-radius:10px; cursor:pointer }
-    .btn:hover{ background:var(--primary-weak) }
-    .btn.danger{ color:var(--danger); border-color:transparent; background:transparent }
-    .btn.danger:hover{ background:rgba(239,68,68,.08) }
+    li.todo:hover{
+      border-color:var(--primary);
+      box-shadow:0 8px 24px rgba(102,126,234,.15);
+      transform:translateY(-2px);
+    }
+    input[type="checkbox"]{
+      width:24px; height:24px; accent-color:var(--primary);
+      cursor:pointer; border-radius:6px;
+    }
+    .text{
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+      font-weight:500; font-size:15px;
+    }
+    .done{
+      background:rgba(72,187,120,.05);
+      border-color:var(--success);
+    }
+    .done .text{ text-decoration:line-through; opacity:.65; color:var(--muted) }
+    .btn{
+      border:2px solid var(--border); background:var(--card); color:var(--fg);
+      padding:10px 16px; border-radius:12px; cursor:pointer;
+      font-weight:600; font-size:13px;
+      transition:all 0.2s ease;
+    }
+    .btn:hover{
+      background:var(--primary); color:white;
+      border-color:var(--primary);
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(102,126,234,.3);
+    }
+    .btn.danger{
+      color:var(--danger); border-color:var(--danger);
+      background:transparent;
+    }
+    .btn.danger:hover{
+      background:var(--danger); color:white;
+      box-shadow:0 4px 12px rgba(245,101,101,.3);
+    }
 
     /* ===== Form / Error / Footer ===== */
     form{
-      display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:center;
-      border-top:1px dashed var(--border); padding-top:14px
+      display:grid; grid-template-columns:1.2fr 1.5fr auto auto; gap:12px; align-items:center;
+      border-top:2px dashed var(--border); padding-top:20px; margin-top:16px;
     }
-    input[type="text"]{
-      border:1px solid var(--border); background:transparent; color:var(--fg);
-      padding:10px 12px; border-radius:10px; outline:none;
+    input[type="text"], input[type="date"]{
+      border:2px solid var(--border); background:var(--card); color:var(--fg);
+      padding:12px 16px; border-radius:12px; outline:none;
+      font-weight:500; font-size:14px;
+      transition:all 0.2s ease;
     }
-    input[type="text"]::placeholder{ color:var(--muted) }
-    input[type="text"]:focus-visible{ box-shadow:var(--ring); border-color:var(--primary) }
+    input[type="text"]::placeholder{ color:var(--muted); font-weight:400 }
+    input[type="text"]:hover, input[type="date"]:hover{ border-color:var(--primary) }
+    input[type="text"]:focus-visible, input[type="date"]:focus-visible{
+      box-shadow:var(--ring); border-color:var(--primary);
+      transform:translateY(-1px);
+    }
 
     .err{
-      margin-top:10px; color:#b00020; background:#ffeff2; border:1px solid #ffd0d8;
-      padding:10px 12px; border-radius:10px; display:none
+      margin-top:16px; color:#991b1b; background:#fee2e2; border:2px solid #fca5a5;
+      padding:14px 18px; border-radius:12px; display:none;
+      font-weight:500; font-size:14px;
+      animation:shake 0.4s ease;
     }
-    body.dark .err{ background:#2a0f17; border-color:#3b0f19; color:#ff98a7 }
+    @keyframes shake{
+      0%, 100%{ transform:translateX(0) }
+      25%{ transform:translateX(-10px) }
+      75%{ transform:translateX(10px) }
+    }
+    body.dark .err{ background:#450a0a; border-color:#7f1d1d; color:#fca5a5 }
 
-    footer{ border-top:1px solid var(--border); display:flex; justify-content:space-between; color:var(--muted) }
+    footer{
+      border-top:2px solid var(--border);
+      display:flex; justify-content:space-between;
+      color:var(--muted); font-size:13px; font-weight:500;
+      background:rgba(102,126,234,.02);
+    }
     
     .inline-input{
-      border:1px solid var(--border);
-      background:transparent;
+      border:2px solid var(--border);
+      background:var(--card);
       color:var(--fg);
-      padding:6px 8px;
-      border-radius:8px;
+      padding:8px 12px;
+      border-radius:10px;
       outline:none;
-      min-width: 120px;
+      min-width:120px;
+      font-weight:500;
+      transition:all 0.2s ease;
     }
-    .inline-input:focus-visible{ box-shadow:var(--ring); border-color:var(--primary) }
+    .inline-input:hover{ border-color:var(--primary) }
+    .inline-input:focus-visible{
+      box-shadow:var(--ring); border-color:var(--primary);
+      transform:translateY(-1px);
+    }
 
     /* Year/Month Picker Popup */
     .picker-pop{
       position:absolute;
       background:var(--card);
-      border:1px solid var(--border);
-      border-radius:10px;
-      padding:8px;
-      box-shadow:var(--shadow);
-      color:var(--fg); /* ✅ 추가: 다크 모드 대비 유지 */
+      border:2px solid var(--primary);
+      border-radius:16px;
+      padding:16px;
+      box-shadow:0 12px 40px rgba(0,0,0,.2);
+      color:var(--fg);
       z-index:10;
+      animation:fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn{
+      from{ opacity:0; transform:scale(0.95) }
+      to{ opacity:1; transform:scale(1) }
     }
 
     .picker-title{
-      font-weight:600;
-      margin-bottom:6px;
-      color:var(--fg); /* ✅ 글자색 명시 */
+      font-weight:700;
+      margin-bottom:10px;
+      color:var(--primary);
+      font-size:15px;
     }
 
     .picker-chip{
-      border:1px solid var(--border);
-      background:transparent;
-      border-radius:8px;
-      padding:6px 8px;
+      border:2px solid var(--border);
+      background:var(--card);
+      border-radius:10px;
+      padding:8px 12px;
       cursor:pointer;
-      color:var(--fg); /* ✅ 추가 */
-      transition:background 0.2s ease, color 0.2s ease;
+      color:var(--fg);
+      font-weight:600;
+      transition:all 0.2s ease;
     }
 
     .picker-chip:hover{
-      background:var(--primary-weak);
-      color:var(--fg);
+      background:var(--primary);
+      color:white;
+      border-color:var(--primary);
+      transform:scale(1.05);
+    }
+
+    .picker-grid{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:8px;
+      margin-bottom:8px;
+    }
+
+    /* Calendar styling */
+    #calendar .btn{
+      transition:all 0.2s ease;
+    }
+    #calendar .btn:hover{
+      transform:scale(1.05);
     }
   </style>
 </head>
@@ -165,8 +291,9 @@
       <ul id="todo-list" role="list"></ul>
 
       <form id="todo-form" autocomplete="off">
-        <input id="title" placeholder="Title" required />
-        <input id="description" placeholder="Description" required />
+        <input id="title" type="text" placeholder="Title" required />
+        <input id="description" type="text" placeholder="Description" required />
+        <input id="duedate" type="date" title="Due Date" required />
         <button class="btn" type="submit">Add</button>
       </form>
 
@@ -196,6 +323,7 @@
       list: $("#todo-list"), filter: $("#filter"), status: $("#status"),
       err: $("#error"), ver: $("#app-version"), themeBtn: $("#toggle-theme"),
       form: $("#todo-form"), title: $("#title"), desc: $("#description"),
+      duedate: $("#duedate"),
       tpl: /** @type {HTMLTemplateElement} */ ($("#todo-tpl")),
       cal: $("#calendar"),
     };
@@ -756,13 +884,24 @@
       }
     });
 
-    // 새 항목 추가 시 현재 선택 날짜로 생성
+    // 새 항목 추가 시 사용자가 입력한 마감 날짜 사용
     els.form.addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      const title = els.title.value.trim(); const description = els.desc.value.trim();
-      if (!title || !description) return showError('Title/Description required');
-      const todo = { id: Date.now(), title, description, completed:false, date: state.date };
-      try { await api.create(todo); els.form.reset(); els.title.focus(); load(); }
+      const title = els.title.value.trim();
+      const description = els.desc.value.trim();
+      const duedate = els.duedate.value; // YYYY-MM-DD 형식
+
+      if (!title || !description || !duedate) {
+        return showError('Title, Description, and Due Date are required');
+      }
+
+      const todo = { id: Date.now(), title, description, completed:false, date: duedate };
+      try {
+        await api.create(todo);
+        els.form.reset();
+        els.title.focus();
+        load();
+      }
       catch(err){ showError(err.message); }
     });
 
