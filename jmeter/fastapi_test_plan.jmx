@@ -10,9 +10,9 @@
             <!-- 필요한 전역 변 수들을 추가할 수 있습니다. -->
             <elementProp name="BASE_URL" elementType="Argument">
                 <stringProp name="Argument.name">BASE_URL</stringProp>
-                <stringProp name="Argument.value">http://localhost:5001</stringProp>
+                <stringProp name="Argument.value">http://localhost:8003</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
-            </elementProp>curl http://localhost:5001/docs
+            </elementProp>curl http://localhost:8003/docs
             </collectionProp>
         </elementProp>
         <stringProp name="TestPlan.user_define_classpath"></stringProp>
@@ -24,7 +24,7 @@
             <collectionProp name="Arguments.arguments"/>
             </elementProp>
             <stringProp name="HTTPSampler.domain">${__P(BASE_URL_DOMAIN,localhost)}</stringProp>
-            <stringProp name="HTTPSampler.port">${__P(BASE_URL_PORT,5001)}</stringProp>
+            <stringProp name="HTTPSampler.port">${__P(BASE_URL_PORT,8003)}</stringProp>
             <stringProp name="HTTPSampler.connect_timeout"></stringProp>
             <stringProp name="HTTPSampler.response_timeout"></stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -55,7 +55,7 @@
                 <collectionProp name="Arguments.arguments"/>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
-            <stringProp name="HTTPSampler.port">5001</stringProp>
+            <stringProp name="HTTPSampler.port">8003</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -81,7 +81,7 @@
                 </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
-            <stringProp name="HTTPSampler.port">5001</stringProp>
+            <stringProp name="HTTPSampler.port">8003</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/users</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -100,7 +100,7 @@
                 <collectionProp name="Arguments.arguments"/>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
-            <stringProp name="HTTPSampler.port">5001</stringProp>
+            <stringProp name="HTTPSampler.port">8003</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/users</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
