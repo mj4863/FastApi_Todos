@@ -16,7 +16,7 @@ from pathlib import Path
 from prometheus_fastapi_instrumentator import Instrumentator
 from logging_loki import LokiQueueHandler
 
-APP_VERSION = "7.0.0"
+APP_VERSION = "8.0.0"
 NOT_FOUND_MSG = "To-Do item not found"
 TODAY = _date.today().isoformat()
 

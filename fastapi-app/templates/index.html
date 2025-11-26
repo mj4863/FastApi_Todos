@@ -102,12 +102,23 @@
       background:var(--primary-weak); border:2px solid var(--border);
     }
 
+    /* Progress bar */
+    .progress-container{
+      background:var(--border); border-radius:999px; height:8px;
+      overflow:hidden; margin-left:12px; width:120px;
+    }
+    .progress-bar{
+      background:linear-gradient(90deg, var(--primary), var(--success));
+      height:100%; border-radius:999px;
+      transition:width 0.3s ease;
+    }
+
     main{ padding:24px clamp(20px,4vw,32px) 28px }
 
     /* ===== List ===== */
     ul#todo-list{ list-style:none; display:grid; gap:12px }
     li.todo{
-      display:grid; grid-template-columns:auto 1fr auto auto auto; align-items:center; gap:14px;
+      display:grid; grid-template-columns:auto 1fr auto auto auto auto; align-items:center; gap:14px;
       border:2px solid var(--border); border-radius:var(--radius);
       padding:16px 18px; background:var(--card);
       transition:all 0.3s ease;
@@ -131,6 +142,26 @@
       border-color:var(--success);
     }
     .done .text{ text-decoration:line-through; opacity:.65; color:var(--muted) }
+
+    /* D-day badge */
+    .dday-badge{
+      padding:4px 10px; border-radius:999px;
+      font-size:11px; font-weight:700; letter-spacing:0.3px;
+      white-space:nowrap;
+    }
+    .dday-overdue{ background:#fecaca; color:#991b1b; }
+    body.dark .dday-overdue{ background:#7f1d1d; color:#fca5a5; }
+    .dday-today{ background:#fed7aa; color:#9a3412; }
+    body.dark .dday-today{ background:#7c2d12; color:#fdba74; }
+    .dday-soon{ background:#fef3c7; color:#92400e; }
+    body.dark .dday-soon{ background:#78350f; color:#fcd34d; }
+    .dday-normal{ background:#e0e7ff; color:#3730a3; }
+    body.dark .dday-normal{ background:#312e81; color:#c7d2fe; }
+
+    /* Overdue/Today highlighting */
+    li.todo.overdue{ border-color:var(--danger); background:rgba(245,101,101,.03); }
+    li.todo.today{ border-color:var(--warning); background:rgba(237,137,54,.03); }
+
     .btn{
       border:2px solid var(--border); background:var(--card); color:var(--fg);
       padding:10px 16px; border-radius:12px; cursor:pointer;
@@ -283,8 +314,11 @@
       </label>
       <div id="calendar" style="margin-left:10px"></div>
       <div class="spacer"></div>
-      <button id="toggle-theme" class="icon-btn" title="Toggle dark mode">🌓</button>
       <span id="status" role="status" aria-live="polite"></span>
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+      <button id="toggle-theme" class="icon-btn" title="Toggle dark mode">🌓</button>
     </div>
 
     <main>
@@ -326,6 +360,7 @@
       duedate: $("#duedate"),
       tpl: /** @type {HTMLTemplateElement} */ ($("#todo-tpl")),
       cal: $("#calendar"),
+      progressBar: $("#progress-bar"),
     };
 
     // 날짜 헬퍼
@@ -335,6 +370,37 @@
       new Date().getMonth() + 1,
       new Date().getDate()
     );
+
+    // D-day 계산
+    function calculateDday(dateStr) {
+      const today = new Date(todayISO());
+      const targetDate = new Date(dateStr);
+      const diffTime = targetDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+
+    // D-day 배지 생성
+    function createDdayBadge(dday) {
+      const badge = document.createElement('span');
+      badge.className = 'dday-badge';
+
+      if (dday < 0) {
+        badge.classList.add('dday-overdue');
+        badge.textContent = `${Math.abs(dday)}일 지남`;
+      } else if (dday === 0) {
+        badge.classList.add('dday-today');
+        badge.textContent = '오늘';
+      } else if (dday <= 3) {
+        badge.classList.add('dday-soon');
+        badge.textContent = `D-${dday}`;
+      } else {
+        badge.classList.add('dday-normal');
+        badge.textContent = `D-${dday}`;
+      }
+
+      return badge;
+    }
     const STORE = { FILTER:'todo-filter', THEME:'todo-theme', DATE:'todo-date' };
     
     const state = {
@@ -398,6 +464,7 @@
         empty.innerHTML = `<span class="text">No items on ${state.date}. Add your first to-do!</span>`;
         els.list.appendChild(empty);
         els.status.textContent = `0 items • 0 done • ${state.date}`;
+        els.progressBar.style.width = '0%';
         return;
       }
       const frag = document.createDocumentFragment();
@@ -406,12 +473,23 @@
         if (t.completed) done++;
         const node = els.tpl.content.firstElementChild.cloneNode(true);
         node.dataset.id = t.id;
-        node.dataset.date = t.date;                // 날짜 저장
-        node.dataset.title = t.title;           
+        node.dataset.date = t.date;
+        node.dataset.title = t.title;
         node.dataset.description = t.description;
         if (t.completed) node.classList.add('done');
         node.querySelector('.chk').checked = !!t.completed;
         node.querySelector('.text').textContent = `${t.title}: ${t.description}`;
+
+        // D-day 배지 추가
+        const dday = calculateDday(t.date);
+        const ddayBadge = createDdayBadge(dday);
+        node.querySelector('.text').after(ddayBadge);
+
+        // 기한 지남/오늘 강조
+        if (!t.completed) {
+          if (dday < 0) node.classList.add('overdue');
+          else if (dday === 0) node.classList.add('today');
+        }
 
         // Move 버튼 추가
         const delBtn = node.querySelector('.del');
@@ -424,7 +502,11 @@
         frag.appendChild(node);
       }
       els.list.appendChild(frag);
-      els.status.textContent = `${todos.length} items • ${done} done • ${state.date}`;
+
+      // 완료율 계산 및 표시
+      const percent = todos.length > 0 ? Math.round((done / todos.length) * 100) : 0;
+      els.status.textContent = `${done}/${todos.length} (${percent}%) • ${state.date}`;
+      els.progressBar.style.width = `${percent}%`;
     }
 
     // 달력 렌더 (연/월 빠른 이동 + 일요일 시작)

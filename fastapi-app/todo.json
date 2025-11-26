@@ -17,7 +17,8 @@
         "id": 1759306628550,
         "title": "과일",
         "description": "사과",
-        "completed": false
+        "completed": false,
+        "date": "2025-11-26"
     },
     {
         "id": 1759306811586,
@@ -60,5 +61,19 @@
         "description": "투두리스트 업데이트",
         "completed": false,
         "date": "2025-11-26"
+    },
+    {
+        "id": 1764160999717,
+        "title": "과일",
+        "description": "복숭아",
+        "completed": false,
+        "date": "2025-12-06"
+    },
+    {
+        "id": 1764161055255,
+        "title": "과일",
+        "description": "오렌지",
+        "completed": false,
+        "date": "2025-11-27"
     }
 ]
