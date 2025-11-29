@@ -13,6 +13,16 @@ services:
     environment:
       - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
 
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/promtail.yaml:ro
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers
+    command: -config.file=/etc/promtail/promtail.yaml
+    depends_on:
+      - loki
   loki:
     image: grafana/loki:latest
     container_name: loki
